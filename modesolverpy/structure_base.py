@@ -272,6 +272,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
 
             if MPL:
                 heatmap = np.loadtxt(args['filename_data'], delimiter=',')
+                structure_plot = plt.figure()
                 plt.clf()
                 plt.title(args['title'])
                 plt.xlabel('$x$')
@@ -281,7 +282,11 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                            aspect="auto")
                 plt.colorbar()
                 plt.savefig(filename_image)
+                #plt.show()
+                print("Returning structure plot")
+                return structure_plot
             else:
+                print("using gnu plot")
                 gp.gnuplot(path+'structure.gpi', args)
 
     def __str__(self):

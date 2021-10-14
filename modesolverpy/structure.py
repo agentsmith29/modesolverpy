@@ -57,6 +57,17 @@ class RidgeWaveguide(sb.Slabs):
     def __init__(self, wavelength, x_step, y_step, wg_height, wg_width, sub_height, sub_width,
                  clad_height, n_sub, n_wg, angle=0, n_clad=mat.Air().n(),
                  film_thickness='wg_height'):
+        print("We draw:\n"
+              "wg_height:%f  |  wg_width: %f  | angle %f\n"
+              "sub_height: %f  |  sub_width: %f\n"
+              "clad_height: %f\n"
+              "n_sub %f  |  n_wg %f  |  n_clad %f\n"
+              "film_thickness %f" % (wg_height, wg_width, angle,
+                                     sub_height, sub_width,
+                                     clad_height,
+                                     n_sub, n_wg, n_clad,
+                                     film_thickness))
+
         sb.Slabs.__init__(self, wavelength, y_step, x_step, sub_width)
 
         self.n_sub = n_sub

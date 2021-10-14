@@ -5,6 +5,7 @@ import sys
 import subprocess
 import copy
 import tqdm
+import time
 import numpy as np
 from six import with_metaclass
 
@@ -20,7 +21,7 @@ try:
     MPL = False
 except:
     import matplotlib.pylab as plt
-
+    from matplotlib.figure import Figure
     MPL = True
 
 def use_gnuplot():
@@ -448,6 +449,8 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
 
         if MPL:
             heatmap = np.loadtxt(filename_mode, delimiter=",")
+
+            modeplot = plt.figure()
             plt.clf()
             plt.suptitle(title)
             if subtitle:
@@ -466,7 +469,13 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
                 aspect="auto",
             )
             plt.colorbar()
-            plt.savefig(filename_image)
+            print("Modeplot done: %s" % title)
+            #time.sleep(10)
+            
+
+            #modeplot.savefig(filename_image)
+
+            return modeplot
         else:
             gp.gnuplot(self._path + "mode.gpi", args)
             gp.trim_pad_image(filename_image)
@@ -577,6 +586,7 @@ class ModeSolverSemiVectorial(_ModeSolver):
             )
             self._write_mode_to_file(np.real(mode), filename_mode)
 
+            plots = []
             if plot:
                 if i == 0 and analyse:
                     A, centre, sigma_2 = anal.fit_gaussian(
@@ -586,7 +596,7 @@ class ModeSolverSemiVectorial(_ModeSolver):
                         "E_{max} = %.3f, (x_{max}, y_{max}) = (%.3f, %.3f), MFD_{x} = %.3f, "
                         "MFD_{y} = %.3f"
                     ) % (A, centre[0], centre[1], sigma_2[0], sigma_2[1])
-                    self._plot_mode(
+                    plots.append(self._plot_mode(
                         self._semi_vectorial_method,
                         i,
                         filename_mode,
@@ -597,17 +607,18 @@ class ModeSolverSemiVectorial(_ModeSolver):
                         centre[0],
                         centre[1],
                         wavelength=self._structure._wl,
-                    )
+                    ))
                 else:
-                    self._plot_mode(
+                    plots.append(self._plot_mode(
                         self._semi_vectorial_method,
                         i,
                         filename_mode,
                         self.n_effs[i],
                         wavelength=self._structure._wl,
-                    )
-
-        return self.modes
+                    ))
+        print("returning mode plots...")
+        return plots
+        #return self.modes
 
 
 class ModeSolverFullyVectorial(_ModeSolver):
