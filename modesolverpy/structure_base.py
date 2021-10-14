@@ -1,3 +1,4 @@
+import matplotlib
 import numpy as np
 from scipy import interpolate
 import os
@@ -5,7 +6,9 @@ import sys
 import subprocess
 import abc
 from six import with_metaclass
+from matplotlib import axis as mpl_axis
 
+import time
 try:
     devnull = open(os.devnull, 'w')
     subprocess.call(['gnuplot', '--version'], stdout=devnull, stderr=devnull)
@@ -30,6 +33,7 @@ def use_matplotlib():
     """
     global plt
     import matplotlib.pylab as plt
+    
     global MPL
     MPL = True
 
@@ -237,8 +241,8 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                                        x_top_right, x_bot_left, n_material)
 
         return self.n
-
-    def write_to_file(self, filename='material_index.dat', plot=True):
+   
+    def write_to_file(self, filename='material_index.dat', plot=True, figure=None, plot_only=True):
         '''
         Write the refractive index profile to file.
 
@@ -250,10 +254,12 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         '''
         path = os.path.dirname(sys.modules[__name__].__file__) + '/'
 
-        with open(filename, 'w') as fs:
-            for n_row in np.abs(self.n[::-1]):
-                n_str = ','.join([str(v) for v in n_row])
-                fs.write(n_str+'\n')
+        if plot_only is False:
+            with open(filename, 'w') as fs:
+                for n_row in np.abs(self.n[::-1]):
+                    n_str = ','.join([str(v) for v in n_row])
+                    fs.write(n_str+'\n')
+
 
         if plot:
             filename_image_prefix, _ = os.path.splitext(filename)
@@ -271,20 +277,33 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
             }
 
             if MPL:
-                heatmap = np.loadtxt(args['filename_data'], delimiter=',')
-                structure_plot = plt.figure()
+                t = time.process_time()
+                print(args['filename_data'])
+                #heatmap = np.loadtxt(args['filename_data'], delimiter=',')
+                heatmap = np.abs(self.n[::-1])
+                print("  -> heatmap read %f seconds" % (time.process_time() - t ))
+
+                if figure is None:
+                    figure = plt.figure()
+                    figure.add_subplot(1, 1, 1)
+                    print("Creating new figure: %s" % type(figure))
+                    
+                t = time.process_time()
+                #structure_plot.clf()
+            
                 plt.clf()
                 plt.title(args['title'])
                 plt.xlabel('$x$')
-                plt.ylabel('$y$')
+                plt.ylabel('$y$') 
+            
                 plt.imshow(np.flipud(heatmap),
-                           extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
-                           aspect="auto")
+                        extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
+                        aspect="auto")
+                        
                 plt.colorbar()
-                plt.savefig(filename_image)
-                #plt.show()
-                print("Returning structure plot")
-                return structure_plot
+                print("  -> heatmap build %f seconds" % (time.process_time() - t ))
+                return figure                
+         
             else:
                 print("using gnu plot")
                 gp.gnuplot(path+'structure.gpi', args)
