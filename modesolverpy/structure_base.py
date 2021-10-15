@@ -242,7 +242,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
 
         return self.n
    
-    def write_to_file(self, filename='material_index.dat', plot=True, figure=None, plot_only=True):
+    def write_to_file(self, filename='material_index.dat', plot=True, figure=None, write_to_file=True):
         '''
         Write the refractive index profile to file.
 
@@ -254,7 +254,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         '''
         path = os.path.dirname(sys.modules[__name__].__file__) + '/'
 
-        if plot_only is False:
+        if write_to_file is False:
             with open(filename, 'w') as fs:
                 for n_row in np.abs(self.n[::-1]):
                     n_str = ','.join([str(v) for v in n_row])
