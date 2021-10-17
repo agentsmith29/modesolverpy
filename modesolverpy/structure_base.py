@@ -9,14 +9,18 @@ from six import with_metaclass
 from matplotlib import axis as mpl_axis
 
 import time
+
 try:
     devnull = open(os.devnull, 'w')
     subprocess.call(['gnuplot', '--version'], stdout=devnull, stderr=devnull)
     import gnuplotpy as gp
+
     MPL = False
 except:
     import matplotlib.pylab as plt
+
     MPL = True
+
 
 def use_gnuplot():
     """
@@ -27,15 +31,17 @@ def use_gnuplot():
     global MPL
     MPL = False
 
+
 def use_matplotlib():
     """
     Use matplotlib as the plotting tool for any structure related outputs.
     """
     global plt
     import matplotlib.pylab as plt
-    
+
     global MPL
     MPL = True
+
 
 class _AbstractStructure(with_metaclass(abc.ABCMeta)):
     @abc.abstractproperty
@@ -65,28 +71,28 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         '''
         float: The centre distance in x.
         '''
-        return 0.5*(self.x_max + self.x_min)
+        return 0.5 * (self.x_max + self.x_min)
 
     @property
     def y_ctr(self):
         '''
         float: The centre distance in y
         '''
-        return 0.5*(self.y_max + self.y_min)
+        return 0.5 * (self.y_max + self.y_min)
 
     @property
     def xc(self):
         '''
         np.array: The centre points of the x points.
         '''
-        return 0.5*(self.x[1:] + self.x[:-1])
+        return 0.5 * (self.x[1:] + self.x[:-1])
 
     @property
     def yc(self):
         '''
         np.array: The centre points of the y points.
         '''
-        return 0.5*(self.y[1:] + self.y[:-1])
+        return 0.5 * (self.y[1:] + self.y[:-1])
 
     @property
     def xc_pts(self):
@@ -137,7 +143,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         '''
         if None not in (self.x_min, self.x_max, self.x_step) and \
                 self.x_min != self.x_max:
-            x = np.arange(self.x_min, self.x_max+self.x_step-self.y_step*0.1, self.x_step)
+            x = np.arange(self.x_min, self.x_max + self.x_step - self.y_step * 0.1, self.x_step)
         else:
             x = np.array([])
         return x
@@ -149,7 +155,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         '''
         if None not in (self.y_min, self.y_max, self.y_step) and \
                 self.y_min != self.y_max:
-            y = np.arange(self.y_min, self.y_max-self.y_step*0.1, self.y_step)
+            y = np.arange(self.y_min, self.y_max - self.y_step * 0.1, self.y_step)
         else:
             y = np.array([])
         return y
@@ -160,7 +166,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         np.array: A grid of permittivies representing
         the permittivity profile of the structure.
         '''
-        return self.n**2
+        return self.n ** 2
 
     @property
     def eps_func(self):
@@ -171,7 +177,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         '''
         interp_real = interpolate.interp2d(self.x, self.y, self.eps.real)
         interp_imag = interpolate.interp2d(self.x, self.y, self.eps.imag)
-        interp = lambda x, y: interp_real(x, y) + 1.j*interp_imag(x, y)
+        interp = lambda x, y: interp_real(x, y) + 1.j * interp_imag(x, y)
         return interp
 
     @property
@@ -188,10 +194,10 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         angle = np.radians(angle)
         trap_len = (y_top_right - y_bot_left) / np.tan(angle)
         num_x_iterations = trap_len / self.x_step
-        y_per_iteration =  num_x_iterations / self.y_pts
+        y_per_iteration = num_x_iterations / self.y_pts
 
-        lhs_x_start_index = int(x_bot_left/ self.x_step + 0.5)
-        rhs_x_stop_index = int(x_top_right/ self.x_step + 1 + 0.5)
+        lhs_x_start_index = int(x_bot_left / self.x_step + 0.5)
+        rhs_x_stop_index = int(x_top_right / self.x_step + 1 + 0.5)
 
         running_removal_float = y_per_iteration
         for i, _ in enumerate(xy_mask):
@@ -209,7 +215,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         return self.n
 
     def _add_material(self, x_bot_left, y_bot_left, x_top_right, y_top_right,
-                     n_material, angle=0):
+                      n_material, angle=0):
         '''
         A low-level function that allows writing a rectangle refractive
         index profile to a `Structure`.
@@ -230,8 +236,8 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                 is useful for creating a ridge with angled
                 sidewalls.
         '''
-        x_mask = np.logical_and(x_bot_left<=self.x, self.x<=x_top_right)
-        y_mask = np.logical_and(y_bot_left<=self.y, self.y<=y_top_right)
+        x_mask = np.logical_and(x_bot_left <= self.x, self.x <= x_top_right)
+        y_mask = np.logical_and(y_bot_left <= self.y, self.y <= y_top_right)
 
         xy_mask = np.kron(y_mask, x_mask).reshape((y_mask.size, x_mask.size))
         self.n[xy_mask] = n_material
@@ -241,8 +247,9 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                                        x_top_right, x_bot_left, n_material)
 
         return self.n
-   
-    def write_to_file(self, filename='material_index.dat', plot=True, figure=None, write_to_file=True):
+
+
+    def write_to_file(self, filename='material_index.dat', plot=True, write_to_file=True):
         '''
         Write the refractive index profile to file.
 
@@ -258,8 +265,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
             with open(filename, 'w') as fs:
                 for n_row in np.abs(self.n[::-1]):
                     n_str = ','.join([str(v) for v in n_row])
-                    fs.write(n_str+'\n')
-
+                    fs.write(n_str + '\n')
 
         if plot:
             filename_image_prefix, _ = os.path.splitext(filename)
@@ -276,40 +282,66 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                 'filename_image': filename_image
             }
 
-            if MPL:
-                t = time.process_time()
-                print(args['filename_data'])
-                #heatmap = np.loadtxt(args['filename_data'], delimiter=',')
-                heatmap = np.abs(self.n[::-1])
-                print("  -> heatmap read %f seconds" % (time.process_time() - t ))
+            heatmap = np.abs(self.n[::-1])
 
-                if figure is None:
-                    figure = plt.figure()
-                    figure.add_subplot(1, 1, 1)
-                    print("Creating new figure: %s" % type(figure))
-                    
-                t = time.process_time()
-                #structure_plot.clf()
-            
-                plt.clf()
-                plt.title(args['title'])
-                plt.xlabel('$x$')
-                plt.ylabel('$y$') 
-            
-                plt.imshow(np.flipud(heatmap),
-                        extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
-                        aspect="auto")
-                        
-                plt.colorbar()
-                print("  -> heatmap build %f seconds" % (time.process_time() - t ))
-                return figure                
-         
-            else:
-                print("using gnu plot")
-                gp.gnuplot(path+'structure.gpi', args)
+            return args, heatmap
+            # if MPL:
+            #     t = time.process_time()
+            #     print(args['filename_data'])
+            #     # heatmap = np.loadtxt(args['filename_data'], delimiter=',')
+            #
+            #     print("  -> heatmap read %f seconds" % (time.process_time() - t))
+            #
+            #     if figure is None:
+            #         print("Figure is empty, creating a new one")
+            #         figure = plt.figure(figsize=(5, 5), dpi=50)
+            #         t = time.process_time()
+            #         axes = figure.add_subplot(1, 1, 1)
+            #
+            #         plt.title(args['title'])
+            #         plt.xlabel('$x$')
+            #         plt.ylabel('$y$')
+            #         axes_img = axes.imshow(np.flipud(heatmap),
+            #                     extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
+            #                     aspect="auto")
+            #
+            #         # plt.colorbar()
+            #         return figure, axes_img
+            #
+            #     if axes is None:
+            #         print("Axes is empty, creating a new one")
+            #         axes = figure.add_subplot(1, 1, 1)
+            #
+            #         plt.title(args['title'])
+            #         plt.xlabel('$x$')
+            #         plt.ylabel('$y$')
+            #         axes_img = axes.imshow(np.flipud(heatmap),
+            #                     extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
+            #                     aspect="auto")
+            #
+            #         # plt.colorbar()
+            #         return figure, axes_img
+            #
+            #     if axes is not None:
+            #         print("Refreshing axes")
+            #         # Refresh
+            #         print(len(figure.get_axes()))
+            #
+            #         #axes = figure.get_axes()[0]
+            #
+            #         axes_img = axes.set_data(np.flipud(heatmap))
+            #         return axes_img
+            #
+            #     print("  -> heatmap build took %f seconds" % (time.process_time() - t))
+            #     return figure
+            #
+            # else:
+            #     print("using gnu plot")
+            #     gp.gnuplot(path + 'structure.gpi', args)
 
     def __str__(self):
         return self.n.__str__()
+
 
 class Structure(_AbstractStructure):
     def __init__(self, x_step, y_step, x_max, y_max, x_min=0., y_min=0.,
@@ -321,11 +353,12 @@ class Structure(_AbstractStructure):
         self.x_step = x_step
         self.y_step = y_step
         self.n_background = n_background
-        self._n = np.ones((self.y.size,self.x.size), 'complex_') * n_background
+        self._n = np.ones((self.y.size, self.x.size), 'complex_') * n_background
 
     @property
     def n(self):
         return self._n
+
 
 class Slabs(_AbstractStructure):
     '''
@@ -358,6 +391,7 @@ class Slabs(_AbstractStructure):
         slab_count (int): The number of :class:`Slab` objects
             added so far.
     '''
+
     def __init__(self, wavelength, y_step, x_step, x_max, x_min=0.):
         _AbstractStructure.__init__(self)
 
@@ -393,12 +427,12 @@ class Slabs(_AbstractStructure):
         else:
             n_back = n_background
 
-        height_discretised = self.y_step*((height // self.y_step) + 1)
+        height_discretised = self.y_step * ((height // self.y_step) + 1)
 
         y_min = self._next_start
         y_max = y_min + height_discretised
         self.slabs[name] = Slab(name, self.x_step, self.y_step, self.x_max,
-                                 y_max, self.x_min, y_min, n_back, self._wl)
+                                y_max, self.x_min, y_min, n_back, self._wl)
 
         self.y_max = y_max
         self._next_start = y_min + height_discretised
@@ -407,7 +441,7 @@ class Slabs(_AbstractStructure):
         if position == 'bottom':
             slabs = {}
             for k in self.slabs.keys():
-                slabs[str(int(k)+1)] = self.slabs[k]
+                slabs[str(int(k) + 1)] = self.slabs[k]
             slabs['0'] = slabs.pop(str(self.slab_count))
             self.slabs = slabs
 
@@ -454,6 +488,7 @@ class Slabs(_AbstractStructure):
 
     def __getitem__(self, slab_name):
         return self.slabs[str(slab_name)]
+
 
 class Slab(Structure):
     '''
@@ -528,6 +563,7 @@ class Slab(Structure):
         Structure._add_material(self, x_min, self.y_min, x_max, self.y_max, n_mat(self._wl), angle)
         return self.n
 
+
 class StructureAni():
     r"""
     Anisottropic structure object.
@@ -565,6 +601,7 @@ class StructureAni():
             as `structure_xx`, but with different refractive index
             parameters.  Default is `None`.
     """
+
     def __init__(self, structure_xx, structure_yy, structure_zz,
                  structure_xy=None, structure_yx=None):
         self.xx = structure_xx
@@ -618,19 +655,19 @@ class StructureAni():
 
     @property
     def x_ctr(self):
-        return 0.5*(self.xx.x_max + self.xx.x_min)
+        return 0.5 * (self.xx.x_max + self.xx.x_min)
 
     @property
     def y_ctr(self):
-        return 0.5*(self.xx.y_max + self.xx.y_min)
+        return 0.5 * (self.xx.y_max + self.xx.y_min)
 
     @property
     def xc(self):
-        return 0.5*(self.xx.x[1:] + self.xx.x[:-1])
+        return 0.5 * (self.xx.x[1:] + self.xx.x[:-1])
 
     @property
     def yc(self):
-        return 0.5*(self.xx.y[1:] + self.xx.y[:-1])
+        return 0.5 * (self.xx.y[1:] + self.xx.y[:-1])
 
     @property
     def xc_pts(self):
@@ -660,7 +697,7 @@ class StructureAni():
     def x(self):
         if None not in (self.xx.x_min, self.xx.x_max, self.xx.x_step) and \
                 self.xx.x_min != self.xx.x_max:
-            x = np.arange(self.xx.x_min, self.xx.x_max+self.xx.x_step-self.xx.y_step*0.1, self.xx.x_step)
+            x = np.arange(self.xx.x_min, self.xx.x_max + self.xx.x_step - self.xx.y_step * 0.1, self.xx.x_step)
         else:
             x = np.array([])
         return x
@@ -669,23 +706,23 @@ class StructureAni():
     def y(self):
         if None not in (self.xx.y_min, self.xx.y_max, self.xx.y_step) and \
                 self.xx.y_min != self.xx.y_max:
-            y = np.arange(self.xx.y_min, self.xx.y_max-self.xx.y_step*0.1, self.xx.y_step)
+            y = np.arange(self.xx.y_min, self.xx.y_max - self.xx.y_step * 0.1, self.xx.y_step)
         else:
             y = np.array([])
         return y
 
     @property
     def eps(self):
-        eps_ani = [a.n**2 for a in self.axes]
+        eps_ani = [a.n ** 2 for a in self.axes]
         return eps_ani
 
     @property
     def eps_func(self):
-        return lambda x,y: tuple(axis.eps_func(x,y) for axis in self.axes)
+        return lambda x, y: tuple(axis.eps_func(x, y) for axis in self.axes)
 
     @property
     def n_func(self):
-        return lambda x,y: tuple(axis.n_func(x,y) for axis in self.axes)
+        return lambda x, y: tuple(axis.n_func(x, y) for axis in self.axes)
 
     def write_to_file(self, filename='material_index.dat', plot=True):
         '''
@@ -705,11 +742,11 @@ class StructureAni():
 
         for axis, name in zip(self.axes, self.axes_str):
             root, ext = os.path.splitext(filename)
-            fn = dir_plot + root + '_'+ name + ext
+            fn = dir_plot + root + '_' + name + ext
             with open(fn, 'w') as fs:
                 for n_row in np.abs(axis.n[::-1]):
                     n_str = ','.join([str(v) for v in n_row])
-                    fs.write(n_str+'\n')
+                    fs.write(n_str + '\n')
 
             if plot:
                 filename_image_prefix, _ = os.path.splitext(fn)
@@ -737,7 +774,7 @@ class StructureAni():
                     plt.colorbar()
                     plt.savefig(filename_image)
                 else:
-                    gp.gnuplot(path+'structure.gpi', args, silent=False)
+                    gp.gnuplot(path + 'structure.gpi', args, silent=False)
 
     def change_wavelength(self, wavelength):
         '''

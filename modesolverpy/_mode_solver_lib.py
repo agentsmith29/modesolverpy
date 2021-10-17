@@ -18,7 +18,7 @@ import scipy
 import scipy.optimize
 
 import collections as col
-
+import logging, time
 def trapz2(f, x=None, y=None, dx=1.0, dy=1.0):
     """Double integrate."""
     return numpy.trapz(numpy.trapz(f, x=y, dx=dy), x=x, dx=dx)
@@ -30,6 +30,7 @@ def centered2d(x):
     return (x[1:, 1:] + x[1:, :-1] + x[:-1, 1:] + x[:-1, :-1]) / 4.
 
 class _ModeSolverSemiVectorial():
+
     """
     This function calculates the modes of a dielectric waveguide
     using the semivectorial finite difference method.
@@ -79,6 +80,8 @@ class _ModeSolverSemiVectorial():
 
     def __init__(self, wl, structure, boundary='0000', method='Ex'):
         # Polarisation bug fix.
+        self.logger = logging.getLogger("ModeSolverSemiVectorial Lib")
+
         assert method in ('Ex', 'Ey'), 'Invalid polarisation method.'
         if method == 'Ex':
             method = 'Ey'
@@ -238,12 +241,17 @@ class _ModeSolverSemiVectorial():
 
     def solve(self, neigs, tol=0, mode_profiles=True, initial_mode_guess=None):
 
+        self.logger.debug("semi-vectorial mode solver started solving")
+        sim_time = time.process_time()
+
         from scipy.sparse.linalg import eigen
 
         self.nmodes = neigs
         self.tol = tol
 
+
         A = self.build_matrix()
+        self.logger.debug("Building Matrix took %f" %(time.process_time() - sim_time))
 
         eigs = eigen.eigs(A,
                           k=neigs,
@@ -252,6 +260,8 @@ class _ModeSolverSemiVectorial():
                           ncv=None,
                           v0 = initial_mode_guess,
                           return_eigenvectors=mode_profiles)
+        self.logger.debug("Finding eigenvectors and eigenvalues took %f" % (time.process_time() - sim_time))
+
         if mode_profiles:
             eigvals, eigvecs = eigs
         else:
@@ -259,11 +269,14 @@ class _ModeSolverSemiVectorial():
             eigvecs = None
 
         neff = self.wl * scipy.sqrt(eigvals) / (2 * numpy.pi)
+        self.logger.debug("Calculation neff took %f" % (time.process_time() - sim_time))
+
         if mode_profiles:
             phi = []
             for ieig in range(neigs):
                 tmp = eigvecs[:, ieig].reshape(self.nx, self.ny)
                 phi.append(tmp)
+        self.logger.debug("Finding phi took %f" % (time.process_time() - sim_time))
 
         # sort and save the modes
         idx = numpy.flipud(numpy.argsort(neff))
@@ -280,6 +293,8 @@ class _ModeSolverSemiVectorial():
             elif self.method == 'Ey':
                 self.Ey = tmp
             self.modes = tmp
+
+        self.logger.debug("Solving donen took %f seconds." % (time.process_time() - sim_time))
 
         return self
 

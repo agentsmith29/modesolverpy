@@ -12,7 +12,7 @@ from six import with_metaclass
 from . import _mode_solver_lib as ms
 from . import _analyse as anal
 from . import structure_base as stb
-
+import logging
 try:
     devnull = open(os.devnull, "w")
     subprocess.call(["gnuplot", "--version"], stdout=devnull, stderr=devnull)
@@ -397,6 +397,7 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
         ctr_y=0.0,
         area=None,
         wavelength=None,
+        figure=None
     ):
         fn = field_name[0] + "_{" + field_name[1:] + "}"
         if MPL:
@@ -419,14 +420,17 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
             else:
                 title += ", A_%s: " % field_name[1] + "{:.1f}\%".format(area)
 
+        title2 = ""
         if subtitle:
             if MPL:
                 title2 = "\n$%s$" % subtitle
             else:
                 title += "\n{/*0.7 %s}" % subtitle
 
+
         args = {
             "title": title,
+            "title2": title2,
             "x_pts": self._structure.xc_pts,
             "y_pts": self._structure.yc_pts,
             "x_min": self._structure.xc_min,
@@ -447,35 +451,57 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
         filename_image = filename_image_prefix + ".png"
         args["filename_image"] = filename_image
 
+        heatmap = np.loadtxt(filename_mode, delimiter=",")
+        return args, heatmap
         if MPL:
-            heatmap = np.loadtxt(filename_mode, delimiter=",")
 
-            modeplot = plt.figure()
-            plt.clf()
-            plt.suptitle(title)
-            if subtitle:
-                plt.rcParams.update({"axes.titlesize": "small"})
-                plt.title(title2)
-            plt.xlabel("x")
-            plt.ylabel("y")
-            plt.imshow(
-                np.flipud(heatmap),
-                extent=(
-                    args["x_min"],
-                    args["x_max"],
-                    args["y_min"],
-                    args["y_max"],
-                ),
-                aspect="auto",
-            )
-            plt.colorbar()
+            if figure is None:
+                print("->>> Building Image")
+                modeplot_figure = plt.figure(figsize=(5, 5), dpi=50)
+                modeplot_axes = modeplot_figure.add_subplot(1, 1, 1)
+                modeplot_axes.cla()
+                plt.suptitle(title)
+                if subtitle:
+                    plt.rcParams.update({"axes.titlesize": "small"})
+                    plt.title(title2)
+                plt.xlabel("x")
+                plt.ylabel("y")
+
+                modeplot_axes = plt.imshow(
+                    np.flipud(heatmap),
+                    extent=(
+                        args["x_min"],
+                        args["x_max"],
+                        args["y_min"],
+                        args["y_max"],
+                    ),
+                    aspect="auto",
+                )
+                #plt.colorbar()
+                return modeplot_figure
+            else:
+                print("->>> Refresh Image")
+                #plt.suptitle(title)
+                #if subtitle:
+                #   plt.rcParams.update({"axes.titlesize": "small"})
+                #   plt.title(title2)
+                modeplot_axes = plt.imshow(
+                    np.flipud(heatmap),
+                    extent=(
+                        args["x_min"],
+                        args["x_max"],
+                        args["y_min"],
+                        args["y_max"],
+                    ),
+                    aspect="auto",
+                )
+
             print("Modeplot done: %s" % title)
-            #time.sleep(10)
-            
+            # time.sleep(10)
 
-            #modeplot.savefig(filename_image)
+            print("type: %s" % type(modeplot_axes))
 
-            return modeplot
+            return modeplot_axes
         else:
             gp.gnuplot(self._path + "mode.gpi", args)
             gp.trim_pad_image(filename_image)
@@ -508,6 +534,8 @@ class ModeSolverSemiVectorial(_ModeSolver):
             simulation window).
     """
 
+
+
     def __init__(
         self,
         n_eigs,
@@ -517,6 +545,7 @@ class ModeSolverSemiVectorial(_ModeSolver):
         initial_mode_guess=None,
         semi_vectorial_method="Ex",
     ):
+        self.logger = logging.getLogger("ModeSolverSemiVectorial")
         self._semi_vectorial_method = semi_vectorial_method
         _ModeSolver.__init__(
             self, n_eigs, tol, boundary, mode_profiles, initial_mode_guess
@@ -531,6 +560,8 @@ class ModeSolverSemiVectorial(_ModeSolver):
         return _modes_directory
 
     def _solve(self, structure, wavelength):
+        self.logger.debug("Using semi-vectorial mode")
+
         self._structure = structure
         self._ms = ms._ModeSolverSemiVectorial(
             wavelength, structure, self._boundary, self._semi_vectorial_method
@@ -551,10 +582,16 @@ class ModeSolverSemiVectorial(_ModeSolver):
             self._initial_mode_guess = np.real(self._ms.modes[0])
 
         self.modes = self._ms.modes
-
+        self.logger.debug("Returning neff")
         return r
 
-    def write_modes_to_file(self, filename="mode.dat", plot=True, analyse=True):
+    @property
+    def get_neffs(self):
+        print("Returning neff %s" % self.n_effs)
+        return self.n_effs
+
+    def write_modes_to_file(self, filename="mode.dat", plot=True, analyse=True,
+                            figure=None):
         """
         Writes the mode fields to a file and optionally plots them.
 
@@ -579,6 +616,7 @@ class ModeSolverSemiVectorial(_ModeSolver):
         if not os.path.isdir(modes_directory):
             os.mkdir(modes_directory)
         filename = modes_directory + filename
+        mode_plot_axes = []
 
         for i, mode in enumerate(self._ms.modes):
             filename_mode = self._get_mode_filename(
@@ -586,7 +624,8 @@ class ModeSolverSemiVectorial(_ModeSolver):
             )
             self._write_mode_to_file(np.real(mode), filename_mode)
 
-            plots = []
+
+
             if plot:
                 if i == 0 and analyse:
                     A, centre, sigma_2 = anal.fit_gaussian(
@@ -596,7 +635,7 @@ class ModeSolverSemiVectorial(_ModeSolver):
                         "E_{max} = %.3f, (x_{max}, y_{max}) = (%.3f, %.3f), MFD_{x} = %.3f, "
                         "MFD_{y} = %.3f"
                     ) % (A, centre[0], centre[1], sigma_2[0], sigma_2[1])
-                    plots.append(self._plot_mode(
+                    modeplot_axes = self._plot_mode(
                         self._semi_vectorial_method,
                         i,
                         filename_mode,
@@ -607,17 +646,27 @@ class ModeSolverSemiVectorial(_ModeSolver):
                         centre[0],
                         centre[1],
                         wavelength=self._structure._wl,
-                    ))
+                        figure=figure
+                    )
+
+                    #print(type(mode))
+                    mode_plot_axes.append(modeplot_axes )
+                    #print("Append plot %d (size %d), no of modes %d" % (i, len(mode_plot_axes), len(self._ms.modes)) )
                 else:
-                    plots.append(self._plot_mode(
+                    modeplot_axes = self._plot_mode(
                         self._semi_vectorial_method,
                         i,
                         filename_mode,
                         self.n_effs[i],
                         wavelength=self._structure._wl,
-                    ))
-        print("returning mode plots...")
-        return plots
+                        figure=figure
+                    )
+                    #print(type(mode))
+                    mode_plot_axes.append(modeplot_axes)
+                    #print("Append plot %d (size %d), no of modes %d" % (i, len(mode_plot_axes), len(self._ms.modes)) )
+
+        print("returning mode plots (%d)..." % len(mode_plot_axes))
+        return mode_plot_axes
         #return self.modes
 
 
@@ -664,6 +713,10 @@ class ModeSolverFullyVectorial(_ModeSolver):
         return _modes_directory
 
     def _solve(self, structure, wavelength):
+        #solve_time = time.process_time()
+        #mode_solver.solve(self.structure)
+        logging.debug("Solving modes took %f seconds." % (time.process_time() - solve_time))
+
         self._structure = structure
         self._ms = ms._ModeSolverVectorial(
             wavelength, structure, self._boundary
