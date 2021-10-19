@@ -80,7 +80,7 @@ class _ModeSolverSemiVectorial():
 
     def __init__(self, wl, structure, boundary='0000', method='Ex'):
         # Polarisation bug fix.
-        self.logger = logging.getLogger("ModeSolverSemiVectorial Lib")
+        self.logger = logging.getLogger("SemiVectorial [Lib]")
 
         assert method in ('Ex', 'Ey'), 'Invalid polarisation method.'
         if method == 'Ex':
@@ -242,17 +242,19 @@ class _ModeSolverSemiVectorial():
     def solve(self, neigs, tol=0, mode_profiles=True, initial_mode_guess=None):
 
         self.logger.debug("semi-vectorial mode solver started solving")
-        sim_time = time.process_time()
+        solve_time_total_start = time.process_time()
 
         from scipy.sparse.linalg import eigen
 
         self.nmodes = neigs
         self.tol = tol
 
-
+        timestamp_start = time.process_time()
         A = self.build_matrix()
-        self.logger.debug("Building Matrix took %f" %(time.process_time() - sim_time))
+        timestamp_stop = time.process_time() - timestamp_start
+        self.logger.debug("Building matrix took %f seconds" %(timestamp_stop))
 
+        timestamp_start = time.process_time()
         eigs = eigen.eigs(A,
                           k=neigs,
                           which='LR',
@@ -260,7 +262,8 @@ class _ModeSolverSemiVectorial():
                           ncv=None,
                           v0 = initial_mode_guess,
                           return_eigenvectors=mode_profiles)
-        self.logger.debug("Finding eigenvectors and eigenvalues took %f" % (time.process_time() - sim_time))
+        timestamp_stop = time.process_time() - timestamp_start
+        self.logger.debug("Finding eigenvectors and eigenvalues took %f seconds" % (timestamp_stop))
 
         if mode_profiles:
             eigvals, eigvecs = eigs
@@ -268,15 +271,19 @@ class _ModeSolverSemiVectorial():
             eigvals = eigs
             eigvecs = None
 
+        timestamp_start = time.process_time()
         neff = self.wl * scipy.sqrt(eigvals) / (2 * numpy.pi)
-        self.logger.debug("Calculation neff took %f" % (time.process_time() - sim_time))
+        timestamp_stop = time.process_time() - timestamp_start
+        self.logger.debug("Calculation n_eff took %f seconds" % (timestamp_start))
 
+        timestamp_start = time.process_time()
         if mode_profiles:
             phi = []
             for ieig in range(neigs):
                 tmp = eigvecs[:, ieig].reshape(self.nx, self.ny)
                 phi.append(tmp)
-        self.logger.debug("Finding phi took %f" % (time.process_time() - sim_time))
+        timestamp_stop = time.process_time() - timestamp_start
+        self.logger.debug("Finding phi took %f seconds" % (timestamp_stop))
 
         # sort and save the modes
         idx = numpy.flipud(numpy.argsort(neff))
@@ -294,7 +301,8 @@ class _ModeSolverSemiVectorial():
                 self.Ey = tmp
             self.modes = tmp
 
-        self.logger.debug("Solving donen took %f seconds." % (time.process_time() - sim_time))
+        solve_time_total_stop = time.process_time() - solve_time_total_start
+        self.logger.info("Solving done, it took %f seconds." % (solve_time_total_stop))
 
         return self
 

@@ -5,6 +5,7 @@ from .structure_base import use_matplotlib
 import opticalmaterialspy as mat
 import numpy as np
 
+import logging
 class RidgeWaveguide(sb.Slabs):
     '''
     A general ridge waveguide structure.
@@ -57,16 +58,19 @@ class RidgeWaveguide(sb.Slabs):
     def __init__(self, wavelength, x_step, y_step, wg_height, wg_width, sub_height, sub_width,
                  clad_height, n_sub, n_wg, angle=0, n_clad=mat.Air().n(),
                  film_thickness='wg_height'):
-        print("We draw:\n"
-              "wg_height:%f  |  wg_width: %f  | angle %f\n"
+        
+        self.logger = logging.getLogger("Structure")
+
+        """ self.logger.debug("Structure:\n"
+              "wg_height:%f  |  wg_width: %f  | angle %f  |  "
               "sub_height: %f  |  sub_width: %f\n"
-              "clad_height: %f\n"
-              "n_sub %f  |  n_wg %f  |  n_clad %f\n"
+              "clad_height: %f  |  "
+              "n_sub %f  |  n_wg %f  |  n_clad %f  |  "
               "film_thickness %f" % (wg_height, wg_width, angle,
                                      sub_height, sub_width,
                                      clad_height,
                                      n_sub, n_wg, n_clad,
-                                     film_thickness))
+                                     film_thickness)) """
 
         sb.Slabs.__init__(self, wavelength, y_step, x_step, sub_width)
 

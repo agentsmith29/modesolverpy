@@ -249,7 +249,7 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
         return self.n
 
 
-    def write_to_file(self, filename='material_index.dat', plot=True, write_to_file=True):
+    def generate_heatmap(self, filename='material_index.dat', plot=True, write_to_file=False):
         '''
         Write the refractive index profile to file.
 
@@ -260,6 +260,8 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                 otherwise `False`.  Default is `True`.
         '''
         path = os.path.dirname(sys.modules[__name__].__file__) + '/'
+
+        heatmap = np.abs(self.n[::-1])
 
         if write_to_file is False:
             with open(filename, 'w') as fs:
@@ -282,62 +284,11 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
                 'filename_image': filename_image
             }
 
-            heatmap = np.abs(self.n[::-1])
+            
 
             return args, heatmap
-            # if MPL:
-            #     t = time.process_time()
-            #     print(args['filename_data'])
-            #     # heatmap = np.loadtxt(args['filename_data'], delimiter=',')
-            #
-            #     print("  -> heatmap read %f seconds" % (time.process_time() - t))
-            #
-            #     if figure is None:
-            #         print("Figure is empty, creating a new one")
-            #         figure = plt.figure(figsize=(5, 5), dpi=50)
-            #         t = time.process_time()
-            #         axes = figure.add_subplot(1, 1, 1)
-            #
-            #         plt.title(args['title'])
-            #         plt.xlabel('$x$')
-            #         plt.ylabel('$y$')
-            #         axes_img = axes.imshow(np.flipud(heatmap),
-            #                     extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
-            #                     aspect="auto")
-            #
-            #         # plt.colorbar()
-            #         return figure, axes_img
-            #
-            #     if axes is None:
-            #         print("Axes is empty, creating a new one")
-            #         axes = figure.add_subplot(1, 1, 1)
-            #
-            #         plt.title(args['title'])
-            #         plt.xlabel('$x$')
-            #         plt.ylabel('$y$')
-            #         axes_img = axes.imshow(np.flipud(heatmap),
-            #                     extent=(args['x_min'], args['x_max'], args['y_min'], args['y_max']),
-            #                     aspect="auto")
-            #
-            #         # plt.colorbar()
-            #         return figure, axes_img
-            #
-            #     if axes is not None:
-            #         print("Refreshing axes")
-            #         # Refresh
-            #         print(len(figure.get_axes()))
-            #
-            #         #axes = figure.get_axes()[0]
-            #
-            #         axes_img = axes.set_data(np.flipud(heatmap))
-            #         return axes_img
-            #
-            #     print("  -> heatmap build took %f seconds" % (time.process_time() - t))
-            #     return figure
-            #
-            # else:
-            #     print("using gnu plot")
-            #     gp.gnuplot(path + 'structure.gpi', args)
+
+        return heatmap
 
     def __str__(self):
         return self.n.__str__()

@@ -397,7 +397,8 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
         ctr_y=0.0,
         area=None,
         wavelength=None,
-        figure=None
+        figure=None,
+        heatmap=None
     ):
         fn = field_name[0] + "_{" + field_name[1:] + "}"
         if MPL:
@@ -451,7 +452,8 @@ class _ModeSolver(with_metaclass(abc.ABCMeta)):
         filename_image = filename_image_prefix + ".png"
         args["filename_image"] = filename_image
 
-        heatmap = np.loadtxt(filename_mode, delimiter=",")
+       
+
         return args, heatmap
         if MPL:
 
@@ -582,16 +584,16 @@ class ModeSolverSemiVectorial(_ModeSolver):
             self._initial_mode_guess = np.real(self._ms.modes[0])
 
         self.modes = self._ms.modes
-        self.logger.debug("Returning neff")
+       
         return r
 
     @property
     def get_neffs(self):
-        print("Returning neff %s" % self.n_effs)
+        
         return self.n_effs
 
     def write_modes_to_file(self, filename="mode.dat", plot=True, analyse=True,
-                            figure=None):
+                            figure=None, write_to_file=False):
         """
         Writes the mode fields to a file and optionally plots them.
 
@@ -622,11 +624,14 @@ class ModeSolverSemiVectorial(_ModeSolver):
             filename_mode = self._get_mode_filename(
                 self._semi_vectorial_method, i, filename
             )
-            self._write_mode_to_file(np.real(mode), filename_mode)
-
+            if write_to_file:
+                self._write_mode_to_file(np.real(mode), filename_mode)
+           
 
 
             if plot:
+                heatmap = np.real(mode)[::-1]
+                
                 if i == 0 and analyse:
                     A, centre, sigma_2 = anal.fit_gaussian(
                         self._structure.xc, self._structure.yc, np.abs(mode)
@@ -646,7 +651,8 @@ class ModeSolverSemiVectorial(_ModeSolver):
                         centre[0],
                         centre[1],
                         wavelength=self._structure._wl,
-                        figure=figure
+                        figure=figure,#
+                        heatmap=heatmap
                     )
 
                     #print(type(mode))
@@ -659,13 +665,14 @@ class ModeSolverSemiVectorial(_ModeSolver):
                         filename_mode,
                         self.n_effs[i],
                         wavelength=self._structure._wl,
-                        figure=figure
+                        figure=figure,
+                        heatmap=heatmap
                     )
                     #print(type(mode))
                     mode_plot_axes.append(modeplot_axes)
                     #print("Append plot %d (size %d), no of modes %d" % (i, len(mode_plot_axes), len(self._ms.modes)) )
 
-        print("returning mode plots (%d)..." % len(mode_plot_axes))
+        
         return mode_plot_axes
         #return self.modes
 
