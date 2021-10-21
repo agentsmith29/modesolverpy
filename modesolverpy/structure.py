@@ -61,16 +61,9 @@ class RidgeWaveguide(sb.Slabs):
         
         self.logger = logging.getLogger("Structure")
 
-        """ self.logger.debug("Structure:\n"
-              "wg_height:%f  |  wg_width: %f  | angle %f  |  "
-              "sub_height: %f  |  sub_width: %f\n"
-              "clad_height: %f  |  "
-              "n_sub %f  |  n_wg %f  |  n_clad %f  |  "
-              "film_thickness %f" % (wg_height, wg_width, angle,
-                                     sub_height, sub_width,
-                                     clad_height,
-                                     n_sub, n_wg, n_clad,
-                                     film_thickness)) """
+        self.logger.debug("Structure: wg_height:%f, wg_width: %f, angle %f, sub_height: %f, "
+        "sub_width: %f, clad_height: %f, n_sub %f, n_wg %f, n_clad %f, film_thickness %f" 
+            % (wg_height, wg_width, angle, sub_height, sub_width, clad_height, n_sub, n_wg, n_clad,  film_thickness))
 
         sb.Slabs.__init__(self, wavelength, y_step, x_step, sub_width)
 

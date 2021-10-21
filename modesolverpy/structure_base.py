@@ -8,6 +8,7 @@ import abc
 from six import with_metaclass
 from matplotlib import axis as mpl_axis
 
+import logging
 import time
 
 try:
@@ -263,7 +264,8 @@ class _AbstractStructure(with_metaclass(abc.ABCMeta)):
 
         heatmap = np.abs(self.n[::-1])
 
-        if write_to_file is False:
+        if write_to_file:
+            self.logger.info("Writing structure to file %s" % filename)
             with open(filename, 'w') as fs:
                 for n_row in np.abs(self.n[::-1]):
                     n_str = ','.join([str(v) for v in n_row])
@@ -305,6 +307,7 @@ class Structure(_AbstractStructure):
         self.y_step = y_step
         self.n_background = n_background
         self._n = np.ones((self.y.size, self.x.size), 'complex_') * n_background
+        self.logger = logging.getLogger("wg_struct")
 
     @property
     def n(self):
